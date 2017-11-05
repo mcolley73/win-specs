@@ -1,0 +1,130 @@
+---
+
+- name: "Build a Windows instance."
+  ec2:
+    region: "{{ target_region }}"
+    profile: "{{ windows_profile }}"
+    key_name: "{{ aws_ssh_key_pair }}"
+    instance_type: "{{ windows_instance_type }}"
+    image: "{{ windows_ami }}"
+    wait: no
+    group: "{{ windows_hosts_security_group_name }}"
+    exact_count: "1"
+    vpc_subnet_id: "{{ target_subnet }}"
+    assign_public_ip: yes
+    count_tag:
+      Experiment: "{{ experiment_name }}"
+      Env: "{{ target_env }}"
+      Name: "{{ windows_instance_host_name }}"
+      Role: "{{ windows_instance_role_tag }}"
+    instance_tags:
+      Experiment: "{{ experiment_name }}"
+      Env: "{{ target_env }}"
+      Name: "{{ windows_instance_host_name }}"
+      Role: "{{ windows_instance_role_tag }}"
+  retries: 3  # There is an error on first run, but machine is coming up.
+  delay: 5
+  ignore_errors: true # Ignoring due to bug in devel version that throws a false-positive error
+  register: new_instance
+
+- name: "Wait 3 minutes for instance to come to life"
+  pause:
+    minutes: 3
+  when: (new_instance|failed or new_instance.changed)
+
+- name: "Find our running windows instance"
+  ec2_remote_facts:
+    region: "{{ target_region }}"
+    profile: "{{ windows_profile }}"
+    filters:
+      "tag:Experiment": "{{ experiment_name }}"
+      "tag:Env": "{{ target_env }}"
+      "tag:Name": "{{ windows_instance_host_name }}"
+      "tag:Role": "{{ windows_instance_role_tag }}"
+      "instance-state-name": "running"
+  register: win_instance_facts
+
+- debug:
+    var: win_instance_facts
+
+- name: "Build and attach a volume for our Category 1"
+  ec2_vol:
+    region: "{{ target_region }}"
+    zone: "{{ target_region }}{{ target_az }}"
+    instance: "{{ win_instance_facts.instances[0].id }}"
+    volume_size: 10         # size in GB
+    volume_type: gp2        # gp2 is SSD
+    encrypted: false
+    device_name: xvdf
+    tags:
+      Experiment: "{{ experiment_name }}"
+      Name: "{{ target_env }}-category-1-data"
+      Env: "{{ target_env }}"
+      Content: "Category 1"
+  register: category_1_vol
+  when: win_instance_facts.instances.0 is defined
+
+- name: "Build and attach a volume for our Category 2"
+  ec2_vol:
+    region: "{{ target_region }}"
+    zone: "{{ target_region }}{{ target_az }}"
+    instance: "{{ win_instance_facts.instances[0].id }}"
+    volume_size: 15         # size in GB
+    volume_type: gp2        # gp2 is SSD
+    encrypted: false
+    device_name: xvdg
+    tags:
+      Experiment: "{{ experiment_name }}"
+      Name: "{{ target_env }}-category-2-data"
+      Env: "{{ target_env }}"
+      Content: "Category 2"
+  register: category_2_vol
+  when: win_instance_facts.instances.0 is defined
+
+- name: "Build and attach a volume for our Category 3"
+  ec2_vol:
+    region: "{{ target_region }}"
+    zone: "{{ target_region }}{{ target_az }}"
+    instance: "{{ win_instance_facts.instances[0].id }}"
+    volume_size: 20         # size in GB
+    volume_type: gp2        # gp2 is SSD
+    encrypted: false
+    device_name: xvdh
+    tags:
+      Experiment: "{{ experiment_name }}"
+      Name: "{{ target_env }}-category-3-data"
+      Env: "{{ target_env }}"
+      Content: "Category 3"
+  register: category_3_vol
+  when: win_instance_facts.instances.0 is defined
+
+- name: "Build and attach a volume for our Category 4"
+  ec2_vol:
+    region: "{{ target_region }}"
+    zone: "{{ target_region }}{{ target_az }}"
+    instance: "{{ win_instance_facts.instances[0].id }}"
+    volume_size: 25         # size in GB
+    volume_type: gp2        # gp2 is SSD
+    encrypted: false
+    device_name: xvdi
+    tags:
+      Experiment: "{{ experiment_name }}"
+      Name: "{{ target_env }}-category-4-data"
+      Env: "{{ target_env }}"
+      Content: "Category 4"
+  register: category_4_vol
+  when: win_instance_facts.instances.0 is defined
+
+- name: "Wait 2 minutes for volumes to finish being created and attached"
+  pause:
+    minutes: 2
+  when: (category_1_vol.changed or category_2_vol.changed or category_3_vol.changed or category_4_vol.changed) and win_instance_facts.instances.0 is defined
+
+- name: "Reboot the Windows instance so drives lock into lettered position"
+  ec2:
+    region: "{{ target_region }}"
+    profile: "{{ windows_profile }}"
+    state: restarted
+    instance_ids:
+      - "{{ win_instance_facts.instances[0].id }}"
+  when: (category_1_vol.changed or category_2_vol.changed or category_3_vol.changed or category_4_vol.changed) and win_instance_facts.instances.0 is defined

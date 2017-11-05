@@ -1,0 +1,8 @@
+---
+
+- hosts: localhost
+  connection: local
+
+  roles:
+    - win-security-groups
+    - win-instance

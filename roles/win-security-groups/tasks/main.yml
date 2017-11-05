@@ -1,0 +1,34 @@
+---
+
+# We need a Security Group for our Windows Hosts
+- name: Windows Hosts Security Group
+  ec2_group:
+    name: "{{ windows_hosts_security_group_name }}"
+    description: "{{ windows_hosts_security_group_desc }}"
+    vpc_id: "{{ target_vpc }}"
+    region: "{{ target_region }}"
+    purge_rules: true
+    purge_rules_egress: true
+    state: present
+    profile: "{{ windows_profile }}"
+    tags:
+      Experiment: "{{ experiment_name }}"
+      Name: "{{ windows_hosts_security_group_name }}"
+      Env: "{{ target_env }}"
+    rules:
+      # We want to be able to RDP in
+      - proto: tcp
+        from_port: 3389
+        to_port: 3389
+        cidr_ip: "{{ trusted_network_cidr }}"
+      # We want to be able to WinRm in
+      - proto: tcp
+        from_port: 5986
+        to_port: 5986
+        cidr_ip: "{{ trusted_network_cidr }}"
+      # We want to be able to WinRm in
+      - proto: tcp
+        from_port: 5985
+        to_port: 5985
+        cidr_ip: "{{ trusted_network_cidr }}"
+  register: windows_security_group

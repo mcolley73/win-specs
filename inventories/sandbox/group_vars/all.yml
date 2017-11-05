@@ -1,0 +1,34 @@
+---
+experiment_name: "windows-specs-test"
+
+target_env: "sandbox"
+target_region: "us-west-2"
+target_az: a
+
+target_vpc: "vpc-2f85c349"
+target_subnet: "subnet-2e72c766"
+target_subnet_cidr_block: "172.29.32.0/20"
+
+trusted_network_cidr: "68.36.23.122/32" # Your house or corporate, perhaps
+vpc_cidr_block:       "172.27.0.0/16"
+subnet_cidr_block:    "172.27.32.0/20"
+
+windows_profile: "default" # The AWS Profile (from ~/.aws/credentials, for example)
+
+aws_ssh_key_pair: "windows-key-pair"
+aws_ssh_key_file: "/Users/Mark/.ssh/windows-key-pair.pem"
+#aws_ssh_key_pair: "macbook-deploy-pair"
+#aws_ssh_key_file: "/Users/Mark/.ssh/macbook-deploy-pair.pem"
+
+windows_ami: "ami-9d9360e5" # Windows 2012R2
+windows_instance_type: "t2.micro"
+
+windows_hosts_security_group_name: "windows-sec-group"
+windows_hosts_security_group_desc: "Security Group for Windows boxes"
+
+windows_computer_name: "WININST"
+windows_instance_host_name: "windows-instance"
+windows_instance_role_tag: "windows-instance"
+
+windows_instance_name: "windows-test-box"
+windows_role_tag: "windows-guinea-pig"
